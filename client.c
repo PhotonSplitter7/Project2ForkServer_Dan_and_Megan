@@ -64,15 +64,35 @@ main(int argc, char **argv)
  if(child > 0){
  //close pipe to write, read only
  close(p1[1]);
+//string to hold data
+char parent_buf[MAXLINE];
 
  while(1){
+int read_status;
+read_status = read(p1[0],parent_buf,MAXLINE);
 
- //read input MOVE TO CHILD
- 	fgets(sendline, MAXLINE, stdin);
+switch (read_status) {
+        case -1:
 
- 	//send to server
-   send(sockfd, sendline, strlen(sendline), 0);
+             printf("(\nPIPE EMPTY)\n");
+             sleep(3);
+             break;
 
+         // case 0 means all bytes are read and EOF(end of conv.)
+         case 0:
+             printf("\nEnd of conversation\n");
+             sleep(1);
+             // read link
+             //close(child_to_parent_pipe[0]);
+
+             //exit(0);
+         default://if data read from pipe write to server via socket
+             printf("\nsending data to server!\n");
+ 	         //send to server
+             send(sockfd, sendline, strlen(sendline), 0);
+             }
+
+   //read socket from server for data
    if (recv(sockfd, recvline, MAXLINE,0) == 0){
     //error: server terminated prematurely
     perror("The server terminated prematurely");
@@ -92,6 +112,7 @@ while(1){
 char child_buf[MAXLINE];
 //read input
 fgets(child_buf, MAXLINE, stdin);
+//write to parent client so they can forward to server
 write(p1[1],child_buf,MAXLINE);
 }
 }
