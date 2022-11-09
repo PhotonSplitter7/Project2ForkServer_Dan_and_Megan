@@ -1,3 +1,4 @@
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -21,15 +22,15 @@ int main (int argc, char **argv)
  struct sockaddr_in cliaddr, servaddr;
 //student variables
 //pipe setup
-int parent_to_child_pipe[2];
-int child_to_parent_pipe[2];
-pipe(parent_to_child_pipe);
-pipe(child_to_parent_pipe);
+//int parent_to_child_pipe[2];
+//int child_to_parent_pipe[2];
+//pipe(parent_to_child_pipe);
+//pipe(child_to_parent_pipe);
 //non blocking pipe ends
-fcntl(parent_to_child_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
-fcntl(child_to_parent_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
-fcntl(parent_to_child_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
-fcntl(child_to_parent_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
+//fcntl(parent_to_child_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
+//fcntl(child_to_parent_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
+//fcntl(parent_to_child_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
+//fcntl(child_to_parent_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
 
 
 
@@ -84,62 +85,68 @@ else{
     fcntl(connfd, F_SETFL, O_NONBLOCK);//WORKS!!!!
     fcntl(listenfd, F_SETFL, O_NONBLOCK);
     //set pipes to non blocking
-    fcntl(parent_to_child_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
-    fcntl(child_to_parent_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
-    fcntl(parent_to_child_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
-    fcntl(child_to_parent_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
+//    fcntl(parent_to_child_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
+//    fcntl(child_to_parent_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
+//    fcntl(parent_to_child_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
+//    fcntl(child_to_parent_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
 
     //close listening socket
     close (listenfd);
-    close(parent_to_child_pipe[1]);//listens to parent on this pipe
-    close(child_to_parent_pipe[0]);//writes to parent on this pipe
+//    close(parent_to_child_pipe[1]);//listens to parent on this pipe
+//    close(child_to_parent_pipe[0]);//writes to parent on this pipe
 
     printf ("%s\n","Child created for dealing with client requests");
 
 
-    while (1)  {//THIS LOOP HOGS ALL OF THE PROGRAM
+    while (1)  {
     //buffer for storing data, cleared on each while loop
     char buf[MAXLINE];
     //read incoming socket data
       n = recv(connfd, buf, MAXLINE,0);
 
     //if incoming socket data resend to client
-      if(n != -1) {
+      //if server connection lost close child
+      if(n == 0){
+      printf("disconnect, closing child server!\n");
+      exit(0);
+      }
+      //if data read print to console and send to client
+      if(n > 0) {
       printf("%s","String received from and resent to the client:");//old
       puts(buf);//old
       send(connfd, buf, n, 0);//old
-      write(child_to_parent_pipe[1],buf,MAXLINE);//if data received from client, pipe it to parent ISSUE IS HERE!!!!!fails
+      //write(child_to_parent_pipe[1],buf,MAXLINE);//if data received from client, pipe it to parent ISSUE IS HERE!!!!!fails
 
       sleep(1);//debug
       }
-      //no socket data, check pipe for message and pass to client
-      else{
-
-         //sleep(1);
-      int read_status;//int to hold pipe filled or empty status
-      //read pipe and get read status
-      read_status = read(parent_to_child_pipe[0], buf, MAXLINE);
-      //if data, then run, else do nothing
-      switch (read_status) {
-             case -1:
-                   //PIPE EMPTY DO NOTHING
-                   printf("\n(EMPTY SOCKET1)");
-                   sleep(2);
-                  break;
-                    //case 0 means all bytes are read and EOF(end of conv.)
-              case 0:
-                      //do nothing if no data
-                      printf("\n(EMPTY SOCKET2)");
-                      sleep(2);
-                      break;
-              default:
-                 //if data read, pass it on to client
-                 send(connfd, buf, n, 0);
-                 printf("MESSAGE SENT TO PIPE!\n");
-                 sleep(2);
-                 break;
-              }
-        }
+//      //no socket data, check pipe for message and pass to client
+//      else{
+//
+//         //sleep(1);
+//      ///int to hold pipe filled or empty status
+//      //read pipe and get read status
+////      read_status = read(parent_to_child_pipe[0], buf, MAXLINE);
+//      //if data, then run, else do nothing
+////      switch (read_status) {
+////             case -1:
+////                   //PIPE EMPTY DO NOTHING
+////                   printf("\n(EMPTY SOCKET1)");
+////                   sleep(2);
+////                  break;
+////                    //case 0 means all bytes are read and EOF(end of conv.)
+////              case 0:
+////                      //do nothing if no data
+////                      printf("\n(EMPTY SOCKET2)");
+////                      sleep(2);
+////                      break;
+////              default:
+////                 //if data read, pass it on to client
+////                 send(connfd, buf, n, 0);
+////                 printf("MESSAGE SENT TO PIPE!\n");
+////                 sleep(2);
+////                 break;
+////              }
+//        }
 
 
 
@@ -149,7 +156,7 @@ else{
       printf("%s\n", "Read error");
     exit(0);
   }
-printf("Closing Connfd!\n");
+
  close(connfd);
  sleep(1);
 
@@ -157,43 +164,44 @@ printf("Closing Connfd!\n");
 
 
      //set pipes to non blocking
-     fcntl(child_to_parent_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
-     fcntl(parent_to_child_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
+//     fcntl(child_to_parent_pipe[0], F_SETFL, O_NONBLOCK);//non blocking assignment
+//     fcntl(parent_to_child_pipe[1], F_SETFL, O_NONBLOCK);//non blocking assignment
 
      //close listening socket
-     close(parent_to_child_pipe[0]);
-     close(child_to_parent_pipe[1]);
+//     close(parent_to_child_pipe[0]);
+//     close(child_to_parent_pipe[1]);
 
- printf("parent says HI!\n");
+ //printf("parent says HI!\n");
 
  char buf2[MAXLINE];
  int read_status;
- read_status = read(child_to_parent_pipe[0], buf2, MAXLINE);
-
- switch (read_status) {
-        case -1:
-
-             printf("(PIPE EMPTY)\n");
-             sleep(3);
-             break;
-
-         // case 0 means all bytes are read and EOF(end of conv.)
-         case 0:
-             printf("End of conversation\n");
-             sleep(1);
-             // read link
-             //close(child_to_parent_pipe[0]);
-
-             //exit(0);
-         default://if data read from pipe write to other server children
-
-             // text read
-             // by default return no. of bytes
-             // which read call read at that time
-             printf("writing to children!\n");
-             printf("%s\n", buf2);
-             write(parent_to_child_pipe[1],buf2, read_status);//program explodes here!!!!!
-         }
+// read_status = read(child_to_parent_pipe[0], buf2, MAXLINE);
+//
+// switch (read_status) {
+//        case -1:
+//
+//             printf("(PIPE EMPTY)\n");
+//             sleep(3);
+//             break;
+//
+//         // case 0 means all bytes are read and EOF(end of conv.)
+//         case 0:
+//             printf("End of conversation\n");
+//             sleep(1);
+//             // read link
+//             //close(child_to_parent_pipe[0]);
+//
+//             //exit(0);
+//         default://if data read from pipe write to other server children
+//
+//             // text read
+//             // by default return no. of bytes
+//             // which read call read at that time
+//             printf("writing to children!\n");
+//             printf("%s\n", buf2);
+//             write(parent_to_child_pipe[1],buf2, read_status);//program explodes here!!!!!
+//             sleep(1);
+//         }
 
 
 
